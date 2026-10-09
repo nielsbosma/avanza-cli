@@ -135,13 +135,15 @@ export const KeyIndicators = z.looseObject({
   priceBookRatio: optNum,
   evEbitRatio: optNum,
   returnOnEquity: optNum,
+  /** Fractions in live data (0.0138 = 1.38 %), not percentages. */
   directYield: optNum,
+  historicYield: optNum,
   dividendsPerYear: optNum,
   marketCapital: Money.nullish(),
   earningsPerShare: Money.nullish(),
   equityPerShare: Money.nullish(),
   dividend: z
-    .looseObject({ exDate: optStr, paymentDate: optStr, amount: optNum, currencyCode: optStr, exDividendDate: optStr })
+    .looseObject({ exDate: optStr, paymentDate: optStr, amount: optNum, currencyCode: optStr, exDateStatus: optStr })
     .nullish(),
   nextReport: z.looseObject({ date: optStr, reportType: optStr }).nullish(),
   previousReport: z.looseObject({ date: optStr, reportType: optStr }).nullish(),
@@ -162,6 +164,17 @@ export const InstrumentInfo = z.looseObject({
   sectors: z.array(z.looseObject({ sectorName: optStr })).nullish(),
 });
 export type InstrumentInfo = z.infer<typeof InstrumentInfo>;
+
+// ---------- ETF details: /_api/market-etf/{id}/details
+
+export const EtfDetails = z.looseObject({
+  assetCategory: optStr,
+  category: optStr,
+  issuer: optStr,
+  fee: z.looseObject({ totalPercentageFee: optNum, totalMonetaryFee: optNum }).nullish(),
+  riskScore: optStr,
+});
+export type EtfDetails = z.infer<typeof EtfDetails>;
 
 // ---------- funds: /_api/fund-guide/guide/{id}
 

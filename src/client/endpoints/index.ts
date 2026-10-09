@@ -2,6 +2,7 @@ import { CliError } from "../../output/errors.js";
 import type { AvanzaHttp } from "../http.js";
 import {
   DealsResponse,
+  EtfDetails,
   FundInfo,
   InstrumentInfo,
   OrderRequestResult,
@@ -18,6 +19,9 @@ export const Route = {
   positions: "/_api/position-data/positions",
   instrument: (type: string, id: string) => `/_api/market-guide/${type}/${id}`,
   fund: (id: string) => `/_api/fund-guide/guide/${id}`,
+  // ETFs moved off market-guide (verified live 2026-10-09; the reference library's path 404s).
+  etf: (id: string) => `/_api/market-etf/${id}`,
+  etfDetails: (id: string) => `/_api/market-etf/${id}/details`,
   search: "/_api/search/filtered-search",
   transactions: "/_api/transactions/list",
   orders: "/_api/trading/rest/orders",
@@ -31,7 +35,6 @@ export function marketGuideType(type: string): string | undefined {
   const t = type.toUpperCase();
   const map: Record<string, string> = {
     STOCK: "stock",
-    EXCHANGE_TRADED_FUND: "exchange_traded_fund",
     CERTIFICATE: "certificate",
     WARRANT: "warrant",
     BOND: "bond",
@@ -55,7 +58,7 @@ const searchTypeMap: Record<SearchType, string> = {
 };
 
 export type InstrumentDetails =
-  | { kind: "listed"; type: string; info: InstrumentInfo }
+  | { kind: "listed"; type: string; info: InstrumentInfo; etf?: EtfDetails }
   | { kind: "fund"; type: "FUND"; info: FundInfo };
 
 export type TransactionType = "buy-sell" | "dividend" | "deposit-withdraw" | "interest" | "foreign-tax" | "forex" | "options";
@@ -71,23 +74,36 @@ export function endpoints(http: AvanzaHttp) {
 
     fund: (orderbookId: string) => http.request("GET", Route.fund(orderbookId), FundInfo),
 
+    etf: (orderbookId: string) => http.request("GET", Route.etf(orderbookId), InstrumentInfo),
+
+    etfDetails: (orderbookId: string) => http.request("GET", Route.etfDetails(orderbookId), EtfDetails),
+
+    /** ETF quote and key indicators, plus fee and risk from its details. */
+    async etfWithDetails(orderbookId: string): Promise<InstrumentDetails> {
+      const info = await this.etf(orderbookId);
+      const etf = await this.etfDetails(orderbookId).catch(() => undefined);
+      return { kind: "listed", type: "EXCHANGE_TRADED_FUND", info, etf };
+    },
+
     /**
      * Instrument details by orderbook id. With a known Avanza type it is one request;
      * without one, tries stock, ETF, then fund.
      */
     async instrumentDetails(orderbookId: string, type?: string | null): Promise<InstrumentDetails> {
       if (type && isFund(type)) return { kind: "fund", type: "FUND", info: await this.fund(orderbookId) };
+      if (type?.toUpperCase() === "EXCHANGE_TRADED_FUND") return this.etfWithDetails(orderbookId);
       const known = type ? marketGuideType(type) : undefined;
       if (known) return { kind: "listed", type: type!.toUpperCase(), info: await this.instrument(known, orderbookId) };
-      for (const [segment, t] of [
-        ["stock", "STOCK"],
-        ["exchange_traded_fund", "EXCHANGE_TRADED_FUND"],
-      ] as const) {
-        try {
-          return { kind: "listed", type: t, info: await this.instrument(segment, orderbookId) };
-        } catch (e) {
-          if (!(e instanceof CliError) || e.code !== "avanza_api_error") throw e;
-        }
+      const notFound = (e: unknown) => e instanceof CliError && e.code === "avanza_api_error";
+      try {
+        return { kind: "listed", type: "STOCK", info: await this.instrument("stock", orderbookId) };
+      } catch (e) {
+        if (!notFound(e)) throw e;
+      }
+      try {
+        return await this.etfWithDetails(orderbookId);
+      } catch (e) {
+        if (!notFound(e)) throw e;
       }
       try {
         return { kind: "fund", type: "FUND", info: await this.fund(orderbookId) };

@@ -96,14 +96,14 @@ export const investor = {
   historicalClosingPrices: { oneDay: 269.3, oneWeek: 267.9, oneMonth: 262.2, threeMonths: 258, startOfYear: 240.1, oneYear: 229.2, start: 10, startDate: "1990-01-01" },
   keyIndicators: {
     numberOfOwners: 500000,
-    volatility: 18.2,
+    volatility: 0.182,
     beta: 0.9,
     priceEarningsRatio: 14.2,
     priceSalesRatio: 5.1,
-    directYield: 1.8,
+    directYield: 0.018,
     dividendsPerYear: 2,
     marketCapital: { value: 830000000000, currency: "SEK" },
-    dividend: { exDate: "2099-05-08", paymentDate: "2099-05-12", amount: 2.6, currencyCode: "SEK" },
+    dividend: { exDate: "2099-05-08", paymentDate: "2099-05-12", amount: 2.6, currencyCode: "SEK", exDateStatus: "FUTURE" },
   },
 };
 
@@ -113,9 +113,9 @@ export const searchHits = {
     {
       orderBookId: "5247",
       type: "STOCK",
-      title: "Investor B",
-      highlightedTitle: "Investor B",
-      description: "INVE B",
+      title: "Investor B (INVE B)",
+      highlightedTitle: "Investor B (INVE B)",
+      description: "Investor är ett svenskt investment- och holdingbolag.",
       urlSlugName: "investor-b",
       flagCode: "SE",
       marketPlaceName: "Stockholmsbörsen",

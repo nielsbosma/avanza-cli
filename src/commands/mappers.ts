@@ -1,10 +1,11 @@
 import type { InstrumentDetails, OrderLike, OverviewAccount, Position, Quantity, SearchHit, Transaction } from "../client/index.js";
-import { money, pctChange, round } from "../output/money.js";
+import { money, pct, pctChange, price, round } from "../output/money.js";
 
 const q = (x: Quantity | null | undefined, fallbackCurrency?: string) => (x ? money(x.value, x.unit && x.unit !== "percentage" ? x.unit : fallbackCurrency) : undefined);
 const qv = (x: Quantity | null | undefined) => (x ? x.value : undefined);
+const qp = (x: Quantity | null | undefined, fallbackCurrency?: string) => (x ? price(x.value, x.unit && x.unit !== "percentage" ? x.unit : fallbackCurrency) : undefined);
+const amt = (x: Quantity | null | undefined) => (x ? round(x.value) : undefined);
 const lower = (s: string | null | undefined) => (s ? s.toLowerCase() : undefined);
-const today = () => new Date().toISOString().slice(0, 10);
 
 export function accountName(a: OverviewAccount): string {
   return a.name.userDefinedName || a.name.defaultName;
@@ -36,12 +37,12 @@ export function mapAccountDetail(a: OverviewAccount) {
   const performance: Record<string, unknown> = {};
   for (const [period, p] of Object.entries(a.performance ?? {})) {
     const key = periodKeys[period] ?? period.toLowerCase();
-    performance[key] = { amount: qv(p.absolute), currency: p.absolute?.unit ?? "SEK", percent: qv(p.relative) };
+    performance[key] = { amount: amt(p.absolute), currency: p.absolute?.unit ?? "SEK", percent: pct(qv(p.relative)) };
   }
   return {
     ...mapAccountSummary(a),
     buying_power_without_credit: q(a.buyingPowerWithoutCredit, "SEK"),
-    profit: a.profit ? { amount: qv(a.profit.absolute), currency: a.profit.absolute?.unit ?? "SEK", percent: qv(a.profit.relative) } : undefined,
+    profit: a.profit ? { amount: amt(a.profit.absolute), currency: a.profit.absolute?.unit ?? "SEK", percent: pct(qv(a.profit.relative)) } : undefined,
     performance,
     status: a.status ?? undefined,
   };
@@ -65,13 +66,13 @@ function returnsFromDetails(d: InstrumentDetails | undefined, last: number | und
   if (d.kind === "fund") {
     const f = d.info;
     return {
-      one_week: f.developmentOneWeek ?? undefined,
-      one_month: f.developmentOneMonth ?? undefined,
-      three_months: f.developmentThreeMonths ?? undefined,
-      ytd: f.developmentThisYear ?? undefined,
-      one_year: f.developmentOneYear ?? undefined,
-      three_years: f.developmentThreeYears ?? undefined,
-      five_years: f.developmentFiveYears ?? undefined,
+      one_week: pct(f.developmentOneWeek),
+      one_month: pct(f.developmentOneMonth),
+      three_months: pct(f.developmentThreeMonths),
+      ytd: pct(f.developmentThisYear),
+      one_year: pct(f.developmentOneYear),
+      three_years: pct(f.developmentThreeYears),
+      five_years: pct(f.developmentFiveYears),
     };
   }
   const h = d.info.historicalClosingPrices;
@@ -92,11 +93,12 @@ function incomeFromDetails(d: InstrumentDetails | undefined) {
   if (!d || d.kind !== "listed") return {};
   const k = d.info.keyIndicators;
   const div = k?.dividend;
-  const exDate = div?.exDate ?? div?.exDividendDate ?? undefined;
-  const isPast = exDate ? exDate <= today() : undefined;
+  const exDate = div?.exDate ?? undefined;
+  // Avanza says whether the ex-date has passed; fall back to comparing dates.
+  const isPast = exDate ? (div?.exDateStatus ? div.exDateStatus === "HISTORICAL" : exDate <= new Date().toISOString().slice(0, 10)) : undefined;
   return {
-    dividend_per_share: div?.amount != null ? money(div.amount, div.currencyCode ?? d.info.listing?.currency) : undefined,
-    dividend_yield: k?.directYield ?? undefined,
+    dividend_per_share: div?.amount != null ? price(div.amount, div.currencyCode ?? d.info.listing?.currency) : undefined,
+    dividend_yield: pct(k?.directYield ?? k?.historicYield, true),
     dividends_per_year: k?.dividendsPerYear ?? undefined,
     last_ex_dividend_date: isPast ? exDate : undefined,
     next_ex_dividend_date: isPast === false ? exDate : undefined,
@@ -113,13 +115,25 @@ function valuationFromDetails(d: InstrumentDetails | undefined) {
     pb: k.priceBookRatio ?? undefined,
     market_cap: k.marketCapital ? money(k.marketCapital.value, k.marketCapital.currency) : undefined,
     beta: k.beta ?? undefined,
-    volatility: k.volatility ?? undefined,
+    volatility: pct(k.volatility, true),
+    return_on_equity: pct(k.returnOnEquity, true),
     eps: k.earningsPerShare ? money(k.earningsPerShare.value, k.earningsPerShare.currency) : undefined,
     number_of_owners: k.numberOfOwners ?? undefined,
   };
 }
 
+const riskScores: Record<string, number> = { ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5, SIX: 6, SEVEN: 7 };
+
 function fundFromDetails(d: InstrumentDetails | undefined) {
+  if (d?.kind === "listed" && d.etf) {
+    const e = d.etf;
+    return {
+      ongoing_charge: pct(e.fee?.totalPercentageFee),
+      risk_level: e.riskScore ? riskScores[e.riskScore] : undefined,
+      fund_category: e.category ?? e.assetCategory ?? undefined,
+      issuer: e.issuer ?? undefined,
+    };
+  }
   if (!d || d.kind !== "fund") return undefined;
   const f = d.info;
   return {
@@ -128,9 +142,9 @@ function fundFromDetails(d: InstrumentDetails | undefined) {
     risk_level: f.risk ?? undefined,
     fund_category: f.categories?.[0] ?? f.fundTypeName ?? undefined,
     rating: f.rating ?? undefined,
-    sharpe_ratio: f.sharpeRatio ?? undefined,
-    standard_deviation: f.standardDeviation ?? undefined,
-    nav: f.nav != null ? money(f.nav, f.currency) : undefined,
+    sharpe_ratio: pct(f.sharpeRatio),
+    standard_deviation: pct(f.standardDeviation),
+    nav: f.nav != null ? price(f.nav, f.currency) : undefined,
     index_fund: f.indexFund ?? undefined,
   };
 }
@@ -158,9 +172,9 @@ export function mapHolding(p: Position, accountTotalSek: number | undefined, d?:
     currency,
     account_id: p.account.id,
     volume,
-    average_price: q(p.averageAcquiredPrice, currency),
+    average_price: qp(p.averageAcquiredPrice, currency),
     acquisition_value: q(p.acquiredValue, "SEK"),
-    last_price: last !== undefined ? money(last, currency) : undefined,
+    last_price: last !== undefined ? price(last, currency) : undefined,
     market_value: last !== undefined ? money(round(volume * last * (p.instrument.volumeFactor ?? 1), 2), currency) : undefined,
     market_value_sek: valueSek !== undefined ? money(valueSek, "SEK") : q(p.value),
     share_of_account: valueSek !== undefined && accountTotalSek ? round((valueSek / accountTotalSek) * 100) : undefined,
@@ -168,7 +182,7 @@ export function mapHolding(p: Position, accountTotalSek: number | undefined, d?:
       pl !== undefined
         ? { amount: round(pl, 2), currency: p.value.unit ?? "SEK", percent: acquired ? round((pl / acquired) * 100) : undefined }
         : undefined,
-    today: perf?.absolute ? { amount: perf.absolute.value, currency: perf.absolute.unit ?? "SEK", percent: perf.relative?.value } : undefined,
+    today: perf?.absolute ? { amount: round(perf.absolute.value), currency: perf.absolute.unit ?? "SEK", percent: pct(perf.relative?.value) } : undefined,
     returns: returnsFromDetails(d, last),
     ...incomeFromDetails(d),
     valuation: valuationFromDetails(d),
@@ -185,9 +199,9 @@ export function mapInstrument(d: InstrumentDetails, orderbookId: string) {
       isin: f.isin ?? undefined,
       type: "fund",
       currency: f.currency ?? undefined,
-      nav: f.nav != null ? money(f.nav, f.currency) : undefined,
+      nav: f.nav != null ? price(f.nav, f.currency) : undefined,
       nav_date: f.navDate ?? undefined,
-      today_percent: f.developmentOneDay ?? undefined,
+      today_percent: pct(f.developmentOneDay),
       returns: returnsFromDetails(d, undefined),
       fund: fundFromDetails(d),
     };
@@ -206,12 +220,12 @@ export function mapInstrument(d: InstrumentDetails, orderbookId: string) {
     tradable: i.tradable ?? undefined,
     sector: i.sectors?.[0]?.sectorName ?? undefined,
     quote: {
-      last: money(last, cur),
-      bid: money(i.quote?.buy, cur),
-      ask: money(i.quote?.sell, cur),
-      high: money(i.quote?.highest, cur),
-      low: money(i.quote?.lowest, cur),
-      change: i.quote?.change != null ? { amount: i.quote.change, currency: cur, percent: i.quote.changePercent ?? undefined } : undefined,
+      last: price(last, cur),
+      bid: price(i.quote?.buy, cur),
+      ask: price(i.quote?.sell, cur),
+      high: price(i.quote?.highest, cur),
+      low: price(i.quote?.lowest, cur),
+      change: i.quote?.change != null ? { amount: round(i.quote.change, 4), currency: cur, percent: pct(i.quote.changePercent) } : undefined,
       volume: i.quote?.totalVolumeTraded ?? undefined,
       turnover: money(i.quote?.totalValueTraded, cur),
       time: i.quote?.timeOfLast ? new Date(i.quote.timeOfLast).toISOString() : undefined,
@@ -219,21 +233,24 @@ export function mapInstrument(d: InstrumentDetails, orderbookId: string) {
     returns: returnsFromDetails(d, last),
     ...incomeFromDetails(d),
     valuation: valuationFromDetails(d),
+    fund: fundFromDetails(d),
     next_report: i.keyIndicators?.nextReport?.date ?? undefined,
   };
 }
 
 export function mapSearchHit(h: SearchHit) {
   const id = h.orderBookId ?? h.orderbookId;
+  // Live titles read "Investor B (INVE B)"; description is a company blurb, not the ticker.
+  const m = /^(.*?)\s*\(([^()]+)\)$/.exec(h.title);
   return {
     orderbook_id: id != null ? String(id) : undefined,
-    name: h.title,
-    ticker: h.description ?? undefined,
+    name: m ? m[1] : h.title,
+    ticker: m ? m[2] : undefined,
     type: lower(h.type),
     currency: h.price?.currency ?? undefined,
     market: h.marketPlaceName ?? undefined,
     country: h.flagCode ?? undefined,
-    last_price: h.price?.last && h.price.currency ? money(Number(h.price.last.replace(",", ".").replace(/\s/g, "")), h.price.currency) : undefined,
+    last_price: h.price?.last && h.price.currency ? price(Number(h.price.last.replace(",", ".").replace(/\s/g, "")), h.price.currency) : undefined,
     tradeable: h.tradeable ?? undefined,
   };
 }
@@ -251,7 +268,7 @@ export function mapTransaction(t: Transaction) {
     orderbook_id: t.orderbook?.id,
     isin: t.isin ?? t.orderbook?.isin ?? undefined,
     volume: qv(t.volume),
-    price: q(t.priceInTradedCurrency, cur),
+    price: qp(t.priceInTradedCurrency, cur),
     amount: q(t.amount, "SEK"),
     commission: q(t.commission, "SEK"),
     result: q(t.result, "SEK"),
