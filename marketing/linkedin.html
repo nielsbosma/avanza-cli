@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>avanza CLI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f4f1ea;
+    --ink: #16181d;
+    --ink-2: #3d424b;
+    --muted: #7a7f88;
+    --rule: #d9d3c6;
+    --accent: #e8572a;
+    --card: #15171c;
+    --card-border: #2a2d34;
+    --t-text: #e9e6df;
+    --t-dim: #7d828c;
+    --t-key: #9fb4ff;
+    --t-val: #f5c46a;
+    --t-ok: #7fd6a4;
+    --t-err: #ff8a6b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1350px; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Inter, system-ui, sans-serif;
+    padding: 68px 80px 60px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  /* faint grid, like squared paper */
+  body::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+    background-size: 54px 54px; opacity: 0.35; pointer-events: none;
+  }
+  body > * { position: relative; }
+  .top { display: flex; justify-content: space-between; align-items: center; font-family: "JetBrains Mono", monospace; font-size: 22px; color: var(--muted); }
+  .top .badge { color: var(--accent); border: 1.5px solid var(--accent); border-radius: 999px; padding: 6px 16px; }
+  h1 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 118px; line-height: 0.98; letter-spacing: -0.03em; margin-top: 36px; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { font-family: Fraunces, Georgia, serif; font-size: 35px; line-height: 1.25; color: var(--ink-2); margin-top: 26px; max-width: 880px; }
+  .points { display: flex; gap: 0; margin-top: 32px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); }
+  .points div { flex: 1; padding: 18px 20px 18px 0; font-size: 22px; line-height: 1.35; color: var(--ink-2); }
+  .points div + div { padding-left: 20px; border-left: 1px solid var(--rule); }
+  .points b { display: block; font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink); margin-bottom: 6px; }
+  .term { margin-top: 34px; background: var(--card); border: 1px solid var(--card-border); border-radius: 18px; box-shadow: 14px 14px 0 var(--ink); }
+  .bar { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-bottom: 1px solid var(--card-border); font-family: "JetBrains Mono", monospace; font-size: 18px; color: var(--t-dim); }
+  .bar .dots { display: flex; gap: 10px; }
+  .bar .dots i { width: 13px; height: 13px; border-radius: 50%; background: #3a3e46; display: block; }
+  pre { font-family: "JetBrains Mono", monospace; font-size: 20px; line-height: 1.5; padding: 20px 28px 22px; color: var(--t-text); white-space: pre; }
+  .p { color: var(--accent); } .k { color: var(--t-key); } .v { color: var(--t-val); } .ok { color: var(--t-ok); } .r { color: var(--t-err); } .c { color: var(--t-dim); }
+  .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 24px; }
+  .url { font-family: "JetBrains Mono", monospace; font-size: 26px; color: var(--ink); }
+  .url span { color: var(--muted); }
+  .stack { font-family: "JetBrains Mono", monospace; font-size: 19px; color: var(--muted); text-align: right; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="top"><span>$ npm i -g @nielsbosma/avanza-cli</span><span class="badge">open source · MIT</span></div>
+
+  <h1>Your broker,<br>for <em>agents</em>.</h1>
+  <p class="sub">An agent-first CLI that lets Claude, Codex &amp; co. read your Avanza portfolio and place trades — inside limits you set.</p>
+
+  <div class="points">
+    <div><b>Read</b>Every holding with returns, dividends, valuation and fees.</div>
+    <div><b>Trade</b>Limit orders, previewed with <code>--dry-run</code> first.</div>
+    <div><b>Guardrails</b>Default deny, per-account caps, kill switch, audit log.</div>
+  </div>
+
+  <div class="term">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span>yaml out · exit codes</span></div>
+<pre><span class="p">$</span> avanza orders buy --account 1379082 --orderbook 5247 \
+    --volume 1 --price 410.7 --dry-run
+<span class="k">kind</span>: order_preview
+<span class="k">checks_passed</span>: [<span class="ok">trade_permission</span>, <span class="ok">allowed_side</span>, <span class="ok">tradable</span>,
+  <span class="ok">max_order_value</span>, <span class="ok">max_daily_value</span>, <span class="ok">buying_power</span>,
+  <span class="ok">price_band</span>, <span class="ok">duplicate_window</span>]
+<span class="k">order</span>: { <span class="k">instrument</span>: <span class="v">Investor B</span>, <span class="k">side</span>: <span class="v">buy</span>, <span class="k">price</span>: <span class="v">410.7 SEK</span> }
+
+<span class="p">$</span> avanza orders sell --account 1379082 ...
+<span class="k">kind</span>: <span class="r">error</span>
+<span class="k">error</span>: { <span class="k">code</span>: <span class="r">permission_denied</span> }
+<span class="c"># exit 3 — "A human can change it with `avanza agent permissions`."</span></pre>
+  </div>
+
+  <div class="foot">
+    <div class="url"><span>github.com/</span>nielsbosma/avanza-cli</div>
+    <div class="stack">TypeScript · Node 20+<br>Claude Code · Codex</div>
+  </div>
+</body>
+</html>

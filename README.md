@@ -20,7 +20,7 @@ your Avanza accounts and place limit orders, **within limits you set**.
 Requires Node.js 20+.
 
 ```bash
-npm install -g avanza-cli
+npm install -g @nielsbosma/avanza-cli
 ```
 
 (Or from source: `npm install && npm run build && npm link`.)
@@ -133,7 +133,7 @@ anything running as your user can read the keychain. The CLI warns when `permiss
 ## As a library
 
 ```ts
-import { createClient } from "avanza-cli";
+import { createClient } from "@nielsbosma/avanza-cli";
 
 const avanza = createClient();
 const { accounts } = await avanza.overview();
