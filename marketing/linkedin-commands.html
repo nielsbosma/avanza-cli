@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>avanza CLI commands</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f4f1ea; --ink: #16181d; --ink-2: #3d424b; --muted: #7a7f88; --rule: #d9d3c6; --accent: #e8572a;
+    --card: #15171c; --card-border: #2a2d34; --t-text: #e9e6df; --t-dim: #8a8f98; --t-key: #9fb4ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1350px; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: Inter, system-ui, sans-serif;
+    padding: 68px 80px 56px; display: flex; flex-direction: column; position: relative; overflow: hidden;
+  }
+  body::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+    background-size: 54px 54px; opacity: 0.35; pointer-events: none;
+  }
+  body > * { position: relative; }
+  .top { display: flex; justify-content: space-between; align-items: center; font-family: "JetBrains Mono", monospace; font-size: 22px; color: var(--muted); }
+  .top .badge { color: var(--accent); border: 1.5px solid var(--accent); border-radius: 999px; padding: 6px 16px; }
+  h1 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 112px; line-height: 1; letter-spacing: -0.03em; margin-top: 34px; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .term { margin-top: 38px; background: var(--card); border: 1px solid var(--card-border); border-radius: 18px; box-shadow: 14px 14px 0 var(--ink); }
+  .bar { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-bottom: 1px solid var(--card-border); font-family: "JetBrains Mono", monospace; font-size: 18px; color: var(--t-dim); }
+  .bar .dots { display: flex; gap: 10px; }
+  .bar .dots i { width: 13px; height: 13px; border-radius: 50%; background: #3a3e46; display: block; }
+  .body { padding: 24px 32px 28px; font-family: "JetBrains Mono", monospace; font-size: 23px; color: var(--t-text); }
+  .group { padding: 18px 0; }
+  .group + .group { border-top: 1px dashed var(--card-border); }
+  .label { font-size: 17px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  .row { display: grid; grid-template-columns: 445px 1fr; gap: 20px; line-height: 1.75; }
+  .row .cmd { color: var(--t-key); white-space: nowrap; }
+  .row .cmd span { color: var(--t-text); }
+  .row .what { color: var(--t-dim); font-family: Inter, sans-serif; font-size: 21px; line-height: 1.75; }
+  .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 24px; }
+  .url { font-family: "JetBrains Mono", monospace; font-size: 26px; color: var(--ink); }
+  .url span { color: var(--muted); }
+  .note { font-size: 19px; color: var(--ink-2); text-align: right; line-height: 1.45; max-width: 420px; }
+</style>
+</head>
+<body>
+  <div class="top"><span>$ avanza --help</span><span class="badge">2 / 2</span></div>
+  <h1>Every command,<br><em>one</em> contract.</h1>
+
+  <div class="term">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span>yaml or --json · stable keys</span></div>
+    <div class="body">
+      <div class="group">
+        <div class="label">For agents · read</div>
+        <div class="row"><div class="cmd"><span>agent</span> readme</div><div class="what">The manual, generated from code</div></div>
+        <div class="row"><div class="cmd"><span>accounts</span> list | show</div><div class="what">Value, cash, buying power</div></div>
+        <div class="row"><div class="cmd"><span>holdings</span> list | show</div><div class="what">P/L, returns, dividends, P/E</div></div>
+        <div class="row"><div class="cmd"><span>instruments</span> search | show</div><div class="what">Find by name, ticker, ISIN; quotes</div></div>
+        <div class="row"><div class="cmd"><span>transactions</span> list</div><div class="what">Buys, sells, dividends, deposits</div></div>
+      </div>
+      <div class="group">
+        <div class="label">For agents · trade</div>
+        <div class="row"><div class="cmd"><span>orders</span> list</div><div class="what">Open orders and today's deals</div></div>
+        <div class="row"><div class="cmd"><span>orders</span> buy | sell</div><div class="what">Limit orders, <code>--dry-run</code> first</div></div>
+        <div class="row"><div class="cmd"><span>orders</span> cancel</div><div class="what">Cancel an open order</div></div>
+      </div>
+      <div class="group">
+        <div class="label">For humans only · needs a terminal</div>
+        <div class="row"><div class="cmd"><span>auth</span> login | logout | status</div><div class="what">Credentials in the OS keychain</div></div>
+        <div class="row"><div class="cmd"><span>agent</span> permissions</div><div class="what">Read / trade per account, limits</div></div>
+        <div class="row"><div class="cmd"><span>agent</span> install</div><div class="what">Skill for Claude Code &amp; Codex</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="url"><span>github.com/</span>nielsbosma/avanza-cli</div>
+    <div class="note">Exit codes 0–5.<br>Errors are structured too.</div>
+  </div>
+</body>
+</html>
