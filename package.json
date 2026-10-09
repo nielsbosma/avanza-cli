@@ -1,5 +1,5 @@
 {
-  "name": "@nielsbosma/avanza-cli",
+  "name": "@bosmainteractive/avanza-cli",
   "version": "0.1.0",
   "description": "Agent-first CLI for Avanza: read holdings and place limit orders within limits a human sets.",
   "type": "module",
